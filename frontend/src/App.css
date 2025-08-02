@@ -1,38 +1,150 @@
 .App {
-    text-align: center;
+  min-height: 100vh;
 }
 
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Custom styles for the annotation tool */
+.annotation-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 10;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.screenshot-container {
+  position: relative;
+  display: inline-block;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.screenshot-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
 
-.App-link {
-    color: #61dafb;
+.screenshot-image.annotating {
+  cursor: crosshair;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.annotation-point {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: #ff0000;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+}
+
+.annotation-text {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #000;
+  white-space: nowrap;
+  z-index: 20;
+  transform: translateY(-100%);
+  margin-top: -4px;
+}
+
+.annotation-arrow {
+  position: absolute;
+  z-index: 15;
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .screenshot-list {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+  
+  .main-content {
+    width: 100%;
+  }
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition: all 0.3s ease;
+}
+
+/* Custom scrollbars */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Focus styles */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+/* Animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .annotation-text {
+    background-color: white;
+    border: 2px solid black;
+    color: black;
+  }
+  
+  .annotation-point {
+    background-color: red;
+    border: 1px solid black;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .transition-all {
+    transition: none;
+  }
+  
+  .pulse {
+    animation: none;
+  }
 }
