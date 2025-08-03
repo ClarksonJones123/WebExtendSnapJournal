@@ -12,6 +12,13 @@ const ScreenshotAnnotationApp = () => {
   const [isAnnotating, setIsAnnotating] = useState(false);
   const [annotationText, setAnnotationText] = useState("");
   const [annotations, setAnnotations] = useState([]);
+  const [selectedScreenshots, setSelectedScreenshots] = useState([]);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportTitle, setExportTitle] = useState("");
+  const [cleanupAfterExport, setCleanupAfterExport] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [memoryUsage, setMemoryUsage] = useState(null);
+  const [showMemoryModal, setShowMemoryModal] = useState(false);
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const [pendingAnnotation, setPendingAnnotation] = useState(null);
@@ -19,6 +26,7 @@ const ScreenshotAnnotationApp = () => {
   // Load screenshots on component mount
   useEffect(() => {
     fetchScreenshots();
+    fetchMemoryUsage();
   }, []);
 
   // Load annotations when screenshot changes
@@ -32,6 +40,9 @@ const ScreenshotAnnotationApp = () => {
     try {
       const response = await axios.get(`${API}/screenshots`);
       setScreenshots(response.data);
+      
+      // Update memory usage after fetch
+      fetchMemoryUsage();
     } catch (error) {
       console.error("Error fetching screenshots:", error);
     }
@@ -43,6 +54,15 @@ const ScreenshotAnnotationApp = () => {
       setAnnotations(response.data);
     } catch (error) {
       console.error("Error fetching annotations:", error);
+    }
+  };
+
+  const fetchMemoryUsage = async () => {
+    try {
+      const response = await axios.get(`${API}/memory/usage`);
+      setMemoryUsage(response.data);
+    } catch (error) {
+      console.error("Error fetching memory usage:", error);
     }
   };
 
@@ -96,7 +116,7 @@ const ScreenshotAnnotationApp = () => {
         image: imageData
       });
       
-      // Refresh screenshots list
+      // Refresh screenshots list and memory usage
       await fetchScreenshots();
       
       // Select the newly uploaded screenshot
@@ -193,6 +213,91 @@ const ScreenshotAnnotationApp = () => {
   const cancelAnnotation = () => {
     setIsAnnotating(false);
     setPendingAnnotation(null);
+  };
+
+  // Selection functions
+  const toggleScreenshotSelection = (screenshotId) => {
+    setSelectedScreenshots(prev => 
+      prev.includes(screenshotId) 
+        ? prev.filter(id => id !== screenshotId)
+        : [...prev, screenshotId]
+    );
+  };
+
+  const selectAllScreenshots = () => {
+    setSelectedScreenshots(screenshots.map(s => s.id));
+  };
+
+  const clearSelection = () => {
+    setSelectedScreenshots([]);
+  };
+
+  const exportToPDF = async () => {
+    if (selectedScreenshots.length === 0) {
+      alert('Please select at least one screenshot to export');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const response = await axios.post(`${API}/export/pdf`, {
+        screenshot_ids: selectedScreenshots,
+        title: exportTitle || undefined,
+        cleanup_after_export: cleanupAfterExport
+      }, {
+        responseType: 'blob'
+      });
+
+      // Create download link
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `screenshots_export_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      // Close modal and refresh if cleanup was performed
+      setShowExportModal(false);
+      setSelectedScreenshots([]);
+      setExportTitle("");
+      
+      if (cleanupAfterExport) {
+        await fetchScreenshots();
+        setCurrentScreenshot(null);
+      }
+
+      alert('PDF export completed successfully!');
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      alert('Error exporting PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const cleanupAllMemory = async () => {
+    if (!window.confirm('Are you sure you want to delete ALL screenshots? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API}/memory/cleanup`);
+      alert(`Memory cleanup completed! Freed ${response.data.memory_freed} MB`);
+      
+      // Reset state
+      setScreenshots([]);
+      setCurrentScreenshot(null);
+      setAnnotations([]);
+      setSelectedScreenshots([]);
+      await fetchMemoryUsage();
+      setShowMemoryModal(false);
+    } catch (error) {
+      console.error("Error during cleanup:", error);
+      alert('Error during memory cleanup');
+    }
   };
 
   const drawAnnotations = () => {
@@ -305,10 +410,26 @@ const ScreenshotAnnotationApp = () => {
                   className="hidden"
                 />
               </label>
+
+              {/* Export and Memory Management */}
+              <button
+                onClick={() => setShowExportModal(true)}
+                disabled={screenshots.length === 0}
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+              >
+                Export PDF
+              </button>
+
+              <button
+                onClick={() => setShowMemoryModal(true)}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg"
+              >
+                Memory ({memoryUsage?.total_size_mb || 0} MB)
+              </button>
             </div>
 
             <div className="text-sm text-gray-600">
-              Screenshots: {screenshots.length}
+              Screenshots: {screenshots.length} | Selected: {selectedScreenshots.length}
             </div>
           </div>
 
@@ -352,26 +473,58 @@ const ScreenshotAnnotationApp = () => {
         <div className="flex gap-6">
           {/* Screenshots List */}
           <div className="w-64 bg-white rounded-lg shadow-md p-4">
-            <h2 className="text-lg font-semibold mb-4">Screenshots</h2>
-            <div className="space-y-2">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Screenshots</h2>
+              {screenshots.length > 0 && (
+                <div className="flex gap-1">
+                  <button
+                    onClick={selectAllScreenshots}
+                    className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded"
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={clearSelection}
+                    className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded"
+                  >
+                    None
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
               {screenshots.map((screenshot) => (
                 <div
                   key={screenshot.id}
-                  onClick={() => setCurrentScreenshot(screenshot)}
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${
                     currentScreenshot?.id === screenshot.id
                       ? "bg-blue-100 border-2 border-blue-500"
+                      : selectedScreenshots.includes(screenshot.id)
+                      ? "bg-purple-100 border-2 border-purple-500"
                       : "bg-gray-50 hover:bg-gray-100"
                   }`}
                 >
-                  <div className="text-sm font-medium">
-                    {new Date(screenshot.created_at).toLocaleString()}
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    {screenshot.display_width} x {screenshot.display_height}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {screenshot.annotations.length} annotations
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedScreenshots.includes(screenshot.id)}
+                      onChange={() => toggleScreenshotSelection(screenshot.id)}
+                      className="rounded"
+                    />
+                    <div 
+                      className="flex-1"
+                      onClick={() => setCurrentScreenshot(screenshot)}
+                    >
+                      <div className="text-sm font-medium">
+                        {new Date(screenshot.created_at).toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {screenshot.display_width} x {screenshot.display_height}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {screenshot.annotations.length} annotations
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -445,6 +598,108 @@ const ScreenshotAnnotationApp = () => {
             )}
           </div>
         </div>
+
+        {/* Export Modal */}
+        {showExportModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-96 max-w-90vw">
+              <h2 className="text-xl font-bold mb-4">Export to PDF</h2>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">
+                  Selected Screenshots: {selectedScreenshots.length}
+                </label>
+                <label className="block text-sm font-medium mb-2">PDF Title (optional):</label>
+                <input
+                  type="text"
+                  value={exportTitle}
+                  onChange={(e) => setExportTitle(e.target.value)}
+                  placeholder="Enter PDF title..."
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={cleanupAfterExport}
+                    onChange={(e) => setCleanupAfterExport(e.target.checked)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">
+                    Delete screenshots after export (free memory)
+                  </span>
+                </label>
+                {cleanupAfterExport && (
+                  <p className="text-xs text-red-600 mt-1">
+                    Warning: This will permanently delete the selected screenshots
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={exportToPDF}
+                  disabled={isExporting}
+                  className="flex-1 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                >
+                  {isExporting ? "Exporting..." : "Export PDF"}
+                </button>
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Memory Management Modal */}
+        {showMemoryModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-96 max-w-90vw">
+              <h2 className="text-xl font-bold mb-4">Memory Management</h2>
+              
+              {memoryUsage && (
+                <div className="mb-4 space-y-2">
+                  <div className="text-sm">
+                    <strong>Total Memory Usage:</strong> {memoryUsage.total_size_mb} MB
+                  </div>
+                  <div className="text-sm">
+                    <strong>Total Files:</strong> {memoryUsage.file_count}
+                  </div>
+                  <div className="text-sm">
+                    <strong>Screenshots:</strong> {memoryUsage.screenshots}
+                  </div>
+                </div>
+              )}
+
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                <p className="text-sm text-yellow-800">
+                  <strong>Recommendation:</strong> Export screenshots to PDF and enable cleanup to free memory while preserving your annotations.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={cleanupAllMemory}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+                >
+                  Delete All Screenshots
+                </button>
+                <button
+                  onClick={() => setShowMemoryModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
