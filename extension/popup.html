@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 350px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .header h1 {
+      font-size: 18px;
+      color: #333;
+      margin: 0 0 10px 0;
+    }
+    
+    .memory-info {
+      background: #f0f8ff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    button {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .primary-btn {
+      background: #007cba;
+      color: white;
+    }
+    
+    .primary-btn:hover {
+      background: #005a8b;
+    }
+    
+    .secondary-btn {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .secondary-btn:hover {
+      background: #4b5563;
+    }
+    
+    .success-btn {
+      background: #059669;
+      color: white;
+    }
+    
+    .success-btn:hover {
+      background: #047857;
+    }
+    
+    .danger-btn {
+      background: #dc2626;
+      color: white;
+    }
+    
+    .danger-btn:hover {
+      background: #b91c1c;
+    }
+    
+    .disabled {
+      background: #d1d5db !important;
+      color: #6b7280 !important;
+      cursor: not-allowed !important;
+    }
+    
+    .screenshots-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      margin: 15px 0;
+    }
+    
+    .screenshot-item {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f3f4f6;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .screenshot-item:hover {
+      background: #f9fafb;
+    }
+    
+    .screenshot-item.selected {
+      background: #dbeafe;
+      border-left: 3px solid #007cba;
+    }
+    
+    .screenshot-info {
+      font-size: 11px;
+      color: #666;
+    }
+    
+    .screenshot-time {
+      font-size: 10px;
+      color: #888;
+    }
+    
+    .status {
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-size: 12px;
+    }
+    
+    .status.success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    
+    .status.error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    
+    .status.info {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .export-section {
+      border-top: 1px solid #e5e7eb;
+      padding-top: 15px;
+      margin-top: 15px;
+    }
+    
+    .export-options {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .export-options button {
+      flex: 1;
+      padding: 8px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📸 Screenshot Annotator</h1>
+    <div class="memory-info" id="memoryInfo">
+      Memory: <span id="memoryUsage">0 KB</span> | Screenshots: <span id="screenshotCount">0</span>
+    </div>
+  </div>
+
+  <!-- Status messages -->
+  <div id="status" class="status hidden"></div>
+
+  <!-- Main actions -->
+  <div class="button-group">
+    <button id="captureBtn" class="primary-btn">
+      📷 Capture Current Page
+    </button>
+    
+    <button id="annotateBtn" class="secondary-btn disabled" disabled>
+      ✏️ Start Annotating
+    </button>
+  </div>
+
+  <!-- Screenshots list -->
+  <div class="screenshots-list" id="screenshotsList">
+    <!-- Screenshots will be populated here -->
+  </div>
+
+  <!-- Export section -->
+  <div class="export-section">
+    <div class="export-options">
+      <button id="exportPdfBtn" class="success-btn disabled" disabled>
+        📄 Export PDF
+      </button>
+      <button id="clearMemoryBtn" class="danger-btn">
+        🗑️ Clear All
+      </button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
