@@ -11,6 +11,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.error('Capture error:', chrome.runtime.lastError);
           sendResponse({ error: chrome.runtime.lastError.message });
         } else {
+          console.log('Screenshot captured successfully');
           sendResponse({ imageData: dataUrl });
         }
       }
@@ -40,14 +41,18 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     
     console.log(`Approximate memory usage: ${Math.round(totalSize / 1024)} KB`);
     
-    // Warn if memory usage is high
-    if (totalSize > 50 * 1024 * 1024) { // 50MB
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon48.png',
-        title: 'Screenshot Annotator',
-        message: 'Memory usage is high. Consider exporting and clearing screenshots.'
-      });
+    // Warn if memory usage is high (50MB limit)
+    if (totalSize > 50 * 1024 * 1024) {
+      try {
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon48.png',
+          title: 'Screenshot Annotator',
+          message: 'Memory usage is high. Consider exporting and clearing screenshots.'
+        });
+      } catch (error) {
+        console.log('Notification not available:', error);
+      }
     }
   }
 });
