@@ -1,5 +1,23 @@
 # Screenshot Annotator Browser Extension
 
+## ⚠️ IMPORTANT: THIS IS NOT A FULL-STACK APPLICATION
+
+**This is a SIMPLE BROWSER EXTENSION ONLY.**
+
+- ❌ **NO BACKEND SERVERS** (No FastAPI, Node.js, or any server)
+- ❌ **NO DATABASES** (No MongoDB, PostgreSQL, or any database)  
+- ❌ **NO COMPLEX BUILD PROCESS** (No webpack, npm build, or compilation)
+- ❌ **NO EXTERNAL DEPENDENCIES** (No API calls or external services)
+- ❌ **NO INSTALLATION COMMANDS** (No `npm install`, `pip install`, etc.)
+
+**What this IS:**
+- ✅ **Simple Browser Extension** - Just load into Chrome/Edge
+- ✅ **Local Storage Only** - Everything stored in browser
+- ✅ **Drag & Drop Installation** - No setup required
+- ✅ **Works Offline** - No internet connection needed after installation
+
+---
+
 A lightweight browser extension for capturing webpage screenshots and adding precise text annotations with memory optimization.
 
 ## Features
