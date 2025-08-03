@@ -124,47 +124,7 @@ class ScreenshotAnnotator {
     }
   }
   
-  // Function to be injected into the page for screenshot capture
-  capturePageScreenshot() {
-    return new Promise((resolve) => {
-      // Create a canvas to capture the visible page
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      // Get page dimensions
-      const width = Math.max(
-        document.documentElement.scrollWidth,
-        document.documentElement.clientWidth,
-        window.innerWidth
-      );
-      const height = Math.max(
-        document.documentElement.scrollHeight,
-        document.documentElement.clientHeight,
-        window.innerHeight
-      );
-      
-      // Set canvas size
-      canvas.width = width;
-      canvas.height = height;
-      
-      // Use html2canvas-like approach or fallback to chrome.tabs.captureVisibleTab
-      // For now, we'll use a simple approach with chrome.tabs.captureVisibleTab
-      // This will be handled by the background script
-      
-      chrome.runtime.sendMessage({ 
-        action: 'captureVisibleTab' 
-      }, (response) => {
-        if (response && response.imageData) {
-          resolve({
-            imageData: response.imageData,
-            dimensions: { width: window.innerWidth, height: window.innerHeight }
-          });
-        } else {
-          resolve(null);
-        }
-      });
-    });
-  }
+  // Remove the old capturePageScreenshot function - not needed anymore
   
   async startAnnotation() {
     if (!this.selectedScreenshot) {
