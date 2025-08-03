@@ -34,6 +34,9 @@ api_router = APIRouter(prefix="/api")
 SCREENSHOTS_DIR = ROOT_DIR / "screenshots"
 SCREENSHOTS_DIR.mkdir(exist_ok=True)
 
+# Initialize PDF generator
+pdf_generator = ScreenshotPDFGenerator(SCREENSHOTS_DIR)
+
 # Define Models
 class Screenshot(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
