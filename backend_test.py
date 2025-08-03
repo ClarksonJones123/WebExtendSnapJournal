@@ -285,6 +285,276 @@ class ScreenshotAPITester:
         
         return success1 and success2 and success3 and success4
 
+    def test_memory_usage_tracking(self):
+        """Test memory usage tracking endpoint"""
+        print("\n📊 Testing Memory Usage Tracking...")
+        
+        success, response = self.run_test(
+            "Get Memory Usage",
+            "GET",
+            "memory/usage",
+            200
+        )
+        
+        if success:
+            print(f"   Total memory usage: {response.get('total_size_mb', 0)} MB")
+            print(f"   Total files: {response.get('file_count', 0)}")
+            print(f"   Screenshots: {response.get('screenshots', 0)}")
+            
+            # Verify response structure
+            required_fields = ['total_size_bytes', 'total_size_mb', 'file_count', 'screenshots']
+            for field in required_fields:
+                if field not in response:
+                    print(f"❌ Missing field in memory usage response: {field}")
+                    return False
+            
+            print("✅ Memory usage tracking working correctly")
+        
+        return success
+
+    def test_pdf_export_without_cleanup(self):
+        """Test PDF export without cleanup"""
+        if not self.screenshot_id:
+            print("⚠️  Skipping - No screenshot ID available")
+            return True
+            
+        print("\n📄 Testing PDF Export (without cleanup)...")
+        
+        # First, add an annotation to make the export more meaningful
+        annotation_data = {
+            "text": "PDF Export Test Annotation",
+            "x": 150.0,
+            "y": 200.0,
+            "pointer_x": 300.0,
+            "pointer_y": 350.0
+        }
+        
+        # Add annotation
+        self.run_test(
+            "Add Annotation for PDF",
+            "POST",
+            f"screenshots/{self.screenshot_id}/annotations",
+            200,
+            data=annotation_data
+        )
+        
+        # Test PDF export
+        export_data = {
+            "screenshot_ids": [self.screenshot_id],
+            "title": "Test PDF Export",
+            "cleanup_after_export": False
+        }
+        
+        success, response = self.run_test(
+            "PDF Export (no cleanup)",
+            "POST",
+            "export/pdf",
+            200,
+            data=export_data
+        )
+        
+        if success:
+            # Check if we got PDF content (response should be binary)
+            if isinstance(response, str) and len(response) > 1000:
+                print("✅ PDF export generated successfully")
+                print(f"   PDF size: {len(response)} bytes")
+            else:
+                print("❌ PDF export may have failed - unexpected response size")
+                return False
+        
+        return success
+
+    def test_pdf_export_with_cleanup(self):
+        """Test PDF export with cleanup enabled"""
+        print("\n📄 Testing PDF Export (with cleanup)...")
+        
+        # Create a new screenshot specifically for cleanup testing
+        img_bytes, _, _ = self.create_test_image(800, 600)
+        
+        success1, response = self.run_test(
+            "Upload Screenshot for Cleanup Test",
+            "POST",
+            "screenshots/upload",
+            200,
+            files={'file': ('cleanup_test.png', img_bytes, 'image/png')}
+        )
+        
+        if not success1:
+            return False
+            
+        cleanup_screenshot_id = response['id']
+        
+        # Add annotation
+        annotation_data = {
+            "text": "Cleanup Test Annotation",
+            "x": 100.0,
+            "y": 150.0,
+            "pointer_x": 250.0,
+            "pointer_y": 300.0
+        }
+        
+        self.run_test(
+            "Add Annotation for Cleanup Test",
+            "POST",
+            f"screenshots/{cleanup_screenshot_id}/annotations",
+            200,
+            data=annotation_data
+        )
+        
+        # Get memory usage before export
+        success2, memory_before = self.run_test(
+            "Memory Usage Before Export",
+            "GET",
+            "memory/usage",
+            200
+        )
+        
+        if success2:
+            print(f"   Memory before export: {memory_before.get('total_size_mb', 0)} MB")
+        
+        # Test PDF export with cleanup
+        export_data = {
+            "screenshot_ids": [cleanup_screenshot_id],
+            "title": "Cleanup Test PDF",
+            "cleanup_after_export": True
+        }
+        
+        success3, response = self.run_test(
+            "PDF Export (with cleanup)",
+            "POST",
+            "export/pdf",
+            200,
+            data=export_data
+        )
+        
+        if success3:
+            print("✅ PDF export with cleanup completed")
+            print(f"   PDF size: {len(response) if isinstance(response, str) else 'Unknown'} bytes")
+            
+            # Verify screenshot was deleted
+            success4, _ = self.run_test(
+                "Verify Screenshot Deleted",
+                "GET",
+                f"screenshots/{cleanup_screenshot_id}",
+                404  # Should be 404 since it was deleted
+            )
+            
+            if success4:
+                print("✅ Screenshot successfully deleted after export")
+            else:
+                print("❌ Screenshot was not deleted after export")
+                return False
+                
+            # Check memory usage after cleanup
+            success5, memory_after = self.run_test(
+                "Memory Usage After Cleanup",
+                "GET",
+                "memory/usage",
+                200
+            )
+            
+            if success5:
+                print(f"   Memory after cleanup: {memory_after.get('total_size_mb', 0)} MB")
+                if memory_before and memory_after:
+                    memory_freed = memory_before.get('total_size_mb', 0) - memory_after.get('total_size_mb', 0)
+                    print(f"   Memory freed: {memory_freed} MB")
+        
+        return success1 and success3
+
+    def test_export_preview(self):
+        """Test export preview functionality"""
+        if not self.screenshot_id:
+            print("⚠️  Skipping - No screenshot ID available")
+            return True
+            
+        print("\n🔍 Testing Export Preview...")
+        
+        success, response = self.run_test(
+            "Export Preview",
+            "GET",
+            f"export/preview/{self.screenshot_id}",
+            200
+        )
+        
+        if success:
+            # Response should be image data
+            if isinstance(response, str) and len(response) > 1000:
+                print("✅ Export preview generated successfully")
+                print(f"   Preview size: {len(response)} bytes")
+            else:
+                print("❌ Export preview may have failed - unexpected response size")
+                return False
+        
+        return success
+
+    def test_bulk_memory_cleanup(self):
+        """Test bulk memory cleanup functionality"""
+        print("\n🧹 Testing Bulk Memory Cleanup...")
+        
+        # Create multiple screenshots for cleanup testing
+        screenshot_ids = []
+        for i in range(3):
+            img_bytes, _, _ = self.create_test_image(600, 400)
+            success, response = self.run_test(
+                f"Upload Screenshot {i+1} for Bulk Cleanup",
+                "POST",
+                "screenshots/upload",
+                200,
+                files={'file': (f'bulk_cleanup_{i}.png', img_bytes, 'image/png')}
+            )
+            
+            if success:
+                screenshot_ids.append(response['id'])
+        
+        if len(screenshot_ids) < 3:
+            print("❌ Failed to create test screenshots for bulk cleanup")
+            return False
+        
+        # Get memory usage before cleanup
+        success1, memory_before = self.run_test(
+            "Memory Usage Before Bulk Cleanup",
+            "GET",
+            "memory/usage",
+            200
+        )
+        
+        if success1:
+            print(f"   Memory before bulk cleanup: {memory_before.get('total_size_mb', 0)} MB")
+            print(f"   Screenshots before cleanup: {memory_before.get('screenshots', 0)}")
+        
+        # Perform bulk cleanup
+        success2, cleanup_response = self.run_test(
+            "Bulk Memory Cleanup",
+            "POST",
+            "memory/cleanup",
+            200
+        )
+        
+        if success2:
+            print(f"✅ Bulk cleanup completed")
+            print(f"   Memory freed: {cleanup_response.get('memory_freed', 0)} MB")
+            print(f"   Screenshots deleted: {cleanup_response.get('deleted_from_db', 0)}")
+            
+            # Verify all screenshots were deleted
+            success3, memory_after = self.run_test(
+                "Memory Usage After Bulk Cleanup",
+                "GET",
+                "memory/usage",
+                200
+            )
+            
+            if success3:
+                print(f"   Memory after bulk cleanup: {memory_after.get('total_size_mb', 0)} MB")
+                print(f"   Screenshots after cleanup: {memory_after.get('screenshots', 0)}")
+                
+                if memory_after.get('screenshots', 0) == 0:
+                    print("✅ All screenshots successfully deleted")
+                else:
+                    print("❌ Some screenshots may not have been deleted")
+                    return False
+        
+        return success1 and success2
+
     def test_memory_stress(self):
         """Test memory handling with larger images"""
         print("\n🧠 Testing Memory Efficiency with Large Images...")
