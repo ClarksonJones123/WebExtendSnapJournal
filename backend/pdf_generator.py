@@ -171,9 +171,20 @@ class ScreenshotPDFGenerator:
             # Add each screenshot
             for i, screenshot in enumerate(screenshots, 1):
                 # Screenshot info
+                created_at_str = screenshot['created_at']
+                # Handle different datetime formats
+                if isinstance(created_at_str, str):
+                    if created_at_str.endswith('Z'):
+                        created_dt = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                    else:
+                        created_dt = datetime.fromisoformat(created_at_str)
+                else:
+                    # If it's already a datetime object
+                    created_dt = created_at_str
+                
                 info_text = f"""
                 <b>Screenshot #{i}</b><br/>
-                Created: {datetime.fromisoformat(screenshot['created_at'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}<br/>
+                Created: {created_dt.strftime('%Y-%m-%d %H:%M:%S')}<br/>
                 Original Size: {screenshot['original_width']} × {screenshot['original_height']} pixels<br/>
                 Display Size: {screenshot['display_width']} × {screenshot['display_height']} pixels<br/>
                 Annotations: {len(screenshot.get('annotations', []))}
