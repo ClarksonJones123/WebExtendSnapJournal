@@ -601,12 +601,13 @@ class ScreenshotAPITester:
         return True
 
 def main():
-    print("🚀 Starting Screenshot Annotation API Tests")
-    print("=" * 60)
+    print("🚀 Starting Enhanced Screenshot Annotation API Tests")
+    print("🎯 Testing PDF Export and Memory Management Features")
+    print("=" * 70)
     
     tester = ScreenshotAPITester()
     
-    # Run all tests
+    # Run all tests including new PDF export and memory management tests
     tests = [
         tester.test_root_endpoint,
         tester.test_file_upload,
@@ -615,7 +616,12 @@ def main():
         tester.test_get_screenshot_by_id,
         tester.test_get_screenshot_files,
         tester.test_annotation_crud,
+        tester.test_memory_usage_tracking,
+        tester.test_export_preview,
+        tester.test_pdf_export_without_cleanup,
+        tester.test_pdf_export_with_cleanup,
         tester.test_memory_stress,
+        tester.test_bulk_memory_cleanup,
         tester.cleanup_test_data
     ]
     
@@ -626,11 +632,12 @@ def main():
             print(f"❌ Test failed with exception: {e}")
     
     # Print final results
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 70)
     print(f"📊 Final Results: {tester.tests_passed}/{tester.tests_run} tests passed")
     
     if tester.tests_passed == tester.tests_run:
         print("🎉 All tests passed!")
+        print("✅ PDF Export and Memory Management features working correctly!")
         return 0
     else:
         print("⚠️  Some tests failed - check backend implementation")
