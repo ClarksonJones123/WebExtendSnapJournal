@@ -5,8 +5,9 @@
   "description": "Capture webpage screenshots and add precise text annotations with memory optimization",
   "permissions": [
     "activeTab",
-    "storage",
-    "desktopCapture"
+    "storage", 
+    "desktopCapture",
+    "tabs"
   ],
   "action": {
     "default_popup": "popup.html",
