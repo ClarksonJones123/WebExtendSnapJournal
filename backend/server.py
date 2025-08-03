@@ -70,6 +70,17 @@ class AnnotationCreate(BaseModel):
     pointer_x: float
     pointer_y: float
 
+class PDFExportRequest(BaseModel):
+    screenshot_ids: List[str]
+    title: Optional[str] = None
+    cleanup_after_export: bool = False
+
+class MemoryUsageResponse(BaseModel):
+    total_size_bytes: int
+    total_size_mb: float
+    file_count: int
+    screenshots: int
+
 # Helper functions
 def calculate_display_size(original_width: int, original_height: int) -> tuple:
     """Calculate 90% display size"""
