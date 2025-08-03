@@ -85,23 +85,20 @@ class ScreenshotAnnotator {
       // Get current tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
-      // Inject capture script into the active tab
-      const results = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        function: this.capturePageScreenshot
+      // Directly capture visible tab using background script
+      const response = await chrome.runtime.sendMessage({ 
+        action: 'captureVisibleTab' 
       });
       
-      if (results && results[0] && results[0].result) {
-        const { imageData, dimensions } = results[0].result;
-        
+      if (response && response.imageData) {
         // Create screenshot object
         const screenshot = {
           id: Date.now().toString(),
-          imageData: imageData,
-          originalWidth: dimensions.width,
-          originalHeight: dimensions.height,
-          displayWidth: Math.round(dimensions.width * 0.9), // 90% sizing
-          displayHeight: Math.round(dimensions.height * 0.9),
+          imageData: response.imageData,
+          originalWidth: 1920, // Default width
+          originalHeight: 1080, // Default height  
+          displayWidth: Math.round(1920 * 0.9), // 90% sizing
+          displayHeight: Math.round(1080 * 0.9),
           url: tab.url,
           title: tab.title,
           timestamp: new Date().toISOString(),
@@ -119,11 +116,11 @@ class ScreenshotAnnotator {
         document.getElementById('annotateBtn').classList.remove('disabled');
         
       } else {
-        throw new Error('Failed to capture screenshot');
+        throw new Error(response?.error || 'Failed to capture screenshot');
       }
     } catch (error) {
       console.error('Capture error:', error);
-      this.showStatus('Failed to capture screenshot', 'error');
+      this.showStatus(`Failed to capture screenshot: ${error.message}`, 'error');
     }
   }
   
